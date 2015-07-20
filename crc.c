@@ -8,11 +8,9 @@ uint16_t CRC16Network(const unsigned char *data, int length, uint16_t acc) {
 
   for (i = 0; i < length; i += 2) {
     sum += ntohs(*((uint16_t*)(data + i)));
-    printf("%04hX\n", ntohs(*((uint16_t*)(data + i))));
   }
   if ((length % 2) != 0) {
     dummy = ((uint16_t)data[length - 1]) << 8;
-    printf("dummy = %04hX\n", dummy);
     sum += ntohs(dummy);
   }
   sum = (sum >> 16) + (sum & 0xFFFF);
