@@ -1,5 +1,4 @@
 #include "crc.h"
-#include <stdio.h>
 
 uint16_t CRC16Network(const unsigned char *data, int length, uint16_t acc) {
   int i;
