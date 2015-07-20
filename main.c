@@ -2,9 +2,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
+#include <stdint.h>
 #include <pcap/pcap.h>
 #include "print_raw.h"
 #include "packets.h"
+#include "crc.h"
 
 #define INTERFACE_STR_SIZE 256
 
@@ -21,22 +23,34 @@ void GotPacket(u_char *args, const struct pcap_pkthdr *header,
   struct tm *packet_time;
   struct GetterParams *params = (struct GetterParams*)args;
   time_t sec_time = header->ts.tv_sec;
+  uint16_t crc16;
+  const u_char *eth_hdr_end;
   struct ethhdr eth_header;
   struct IPv4Header ipv4_header;
 
   packet_time = localtime(&sec_time);
+  printf("Recived packet, total length: %d\n", header->caplen);
   strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S", packet_time);
   printf("%s %06dusec\n", time_buf, (int)header->ts.tv_usec);
 
   GetEtherHeader(packet, &eth_header);
+  eth_hdr_end = packet + sizeof(eth_header);
 
   if (params->flag_e) {
     PrintEtherHeader(&eth_header);
     printf("\n");
   }
   if (params->flag_I && (eth_header.h_proto == ETH_P_IP)) {
-    GetIPv4Header(packet + sizeof(eth_header), &ipv4_header);
+    GetIPv4Header(eth_hdr_end, &ipv4_header);
     PrintIPv4Header(&ipv4_header);
+    crc16 = CRC16IPv4(eth_hdr_end, ipv4_header.header.ihl * 4);
+    if (crc16 == ipv4_header.header.check) {
+      printf("Correct checksum = 0x%04hX\n", crc16);
+    }
+    else {
+      printf("Message checkum = 0x%04hX, expectable checksum = 0x%04hX\n",
+              crc16, ipv4_header.header.check);
+    }
     printf("\n");
   }
   if (params->flag_r) {

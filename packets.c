@@ -126,7 +126,7 @@ void PrintIPv4Header(const struct IPv4Header *ip_header) {
   printf(" identifiaction %hX", ip_header->header.id);
   printf(" time to live %d\n", (int)ip_header->header.ttl);
   GetIPProtocolStr(ip_header->header.protocol, prot_str);
-  printf("Protocol %s\n", prot_str);
+  printf("Protocol %s. Total length %hu\n", prot_str, ip_header->header.tot_len);
 }
 
 int GetAllHeaders(const unsigned char *packet, struct UniHeader *headers) {
