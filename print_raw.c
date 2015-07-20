@@ -7,7 +7,7 @@ void PrintRawChunk(int pos, const unsigned char *data, int length, int tab) {
   for (i = 0; i < length; i++) {
     printf("%02X ", data[i]);
   }
-  for (; i < tab; i++) {
+  for ( ; i < tab; i++) {
     printf("   ");
   }
   printf(" %.*s\n", length, data);

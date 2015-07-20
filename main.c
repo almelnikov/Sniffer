@@ -9,8 +9,10 @@
 #define INTERFACE_STR_SIZE 256
 
 struct GetterParams {
-  int flag_e;
-  int flag_r;
+  char flag_e;
+  char flag_r;
+  char flag_I;
+  char flag_a;
 };
 
 void GotPacket(u_char *args, const struct pcap_pkthdr *header,
@@ -20,6 +22,7 @@ void GotPacket(u_char *args, const struct pcap_pkthdr *header,
   struct GetterParams *params = (struct GetterParams*)args;
   time_t sec_time = header->ts.tv_sec;
   struct ethhdr eth_header;
+  struct IPv4Header ipv4_header;
 
   packet_time = localtime(&sec_time);
   strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S", packet_time);
@@ -29,6 +32,11 @@ void GotPacket(u_char *args, const struct pcap_pkthdr *header,
 
   if (params->flag_e) {
     PrintEtherHeader(&eth_header);
+    printf("\n");
+  }
+  if (params->flag_I && (eth_header.h_proto == ETH_P_IP)) {
+    GetIPv4Header(packet + sizeof(eth_header), &ipv4_header);
+    PrintIPv4Header(&ipv4_header);
     printf("\n");
   }
   if (params->flag_r) {
@@ -45,11 +53,13 @@ int main(int argc, char *argv[]) {
   int repeat_cnt = 1;
   int opt, ret, opt_int;
   int flag_e = 0; // Print ethernet header
+  int flag_I = 0; // Print internet layer headers
+  int flag_a = 0; // Print ARP headers
   int flag_r = 0; // Print raw data
   int flag_i = 0; // Use custom interface
   struct GetterParams getter_params;
 
-  while ((opt = getopt(argc, argv, "ern:s:i:")) != -1) {
+  while ((opt = getopt(argc, argv, "erIn:s:i:")) != -1) {
     switch (opt) {
       opt_int = 0;
       case 'e': {  // Print ethernet header
@@ -58,6 +68,14 @@ int main(int argc, char *argv[]) {
       }
       case 'r': {  // Print raw data
         flag_r = 1;
+        break;
+      }
+      case 'I': {  // Print IPv4 headers
+        flag_I = 1;
+        break;
+      }
+      case 'a': {  // Print ARP headers
+        flag_a = 1;
         break;
       }
       case 'n': {  // Number of repeats
@@ -85,8 +103,12 @@ int main(int argc, char *argv[]) {
       }
     }
   }
+
   getter_params.flag_e = flag_e;
   getter_params.flag_r = flag_r;
+  getter_params.flag_I = flag_I;
+  getter_params.flag_a = flag_a;
+
   if (flag_i == 0) {
     dev_str = pcap_lookupdev(errbuf);
     if (dev_str == NULL) {
