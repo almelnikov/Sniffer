@@ -37,15 +37,16 @@ struct ARPHeader {
   unsigned char *ptr;
 };
 
-/*
 union HeaderUnion {
   struct ethhdr eth;
   struct IPv4Header ipv4;
+  struct ARPHeader arp;
 };
 
 enum HeaderType {
   HDR_TYPE_ETH,
   HDR_TYPE_IPV4,
+  HDR_TYPE_ARP
 };
 
 struct UniHeader {
@@ -53,7 +54,7 @@ struct UniHeader {
   int load_begin, load_end;
   union HeaderUnion header;
 };
-*/
+
 
 extern void GetEtherHeader(const unsigned char *packet, struct ethhdr *header);
 extern void PrintEtherHeader(const struct ethhdr *header);

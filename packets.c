@@ -205,8 +205,19 @@ void PrintARPHeader(const struct ARPHeader *header) {
 }
 
 /*
-int GetAllHeaders(const unsigned char *packet, struct UniHeader *headers) {
+int GetAllHeaders(const unsigned char *packet, int length, struct UniHeader *headers) {
   int cnt = 0;
+  const unsigned char *eth_hdr_end;
+  struct ethhdr eth_header;
+  struct IPv4Header ipv4_header;
+  struct ARPHeader arp_header;
+
+  GetEtherHeader(packet, &eth_header);
+  eth_hdr_end = packet + sizeof(eth_header);
+  headers[0].type = HDR_TYPE_ETH;
+  headers[0].header.eth = eth_header;
+  headers[0].load_begin = eth_hdr_end;
+  headers[0].load_end = packet + length;  // ?
 
   return cnt;
 }
