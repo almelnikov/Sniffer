@@ -44,7 +44,7 @@ void GotPacket(u_char *args, const struct pcap_pkthdr *header,
     printf("\n");
   }
   if (params->flag_I && (eth_header.h_proto == ETH_P_IP)) {
-    GetIPv4Header(eth_hdr_end, &ipv4_header);
+    GetIPv4Header(eth_hdr_end, no_eth_length, &ipv4_header);
     PrintIPv4Header(&ipv4_header);
     crc16 = CRC16IPv4(eth_hdr_end, ipv4_header.header.ihl * 4);
     if (crc16 == ipv4_header.header.check) {

@@ -59,9 +59,10 @@ void PrintEtherHeader(const struct ethhdr *header) {
   printf(" protocol: %s\n", protocol_str);
 }
 
-void GetIPv4Header(const unsigned char *packet, struct IPv4Header *ip_header) {
+int GetIPv4Header(const unsigned char *packet, int length, struct IPv4Header *ip_header) {
   int i;
 
+  if (length < IPV4_HDR_RSIZE) return -1;
   memcpy(&ip_header->header, packet, sizeof(struct iphdr));
   ip_header->header.tot_len = ntohs(ip_header->header.tot_len);
   ip_header->header.id = ntohs(ip_header->header.id);
@@ -70,6 +71,7 @@ void GetIPv4Header(const unsigned char *packet, struct IPv4Header *ip_header) {
   ip_header->header.saddr = ntohl(ip_header->header.saddr);
   ip_header->header.daddr = ntohl(ip_header->header.daddr);
 
+  if (length < ip_header->header.ihl * 4) return -1;
   if (ip_header->header.ihl > 5) {
     ip_header->opt_length = ip_header->header.ihl - 5;
   } else {
@@ -79,6 +81,7 @@ void GetIPv4Header(const unsigned char *packet, struct IPv4Header *ip_header) {
     ip_header->options[i] = *(uint32_t*)(packet + sizeof(*ip_header));
     ip_header->options[i] = ntohl(ip_header->options[i]);
   }
+  return 0;
 }
 
 void IPAdressToStr(uint32_t addr, char *str) {

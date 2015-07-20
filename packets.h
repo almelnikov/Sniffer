@@ -11,6 +11,7 @@
 
 #define PROTOCOL_STR_SIZE 32
 
+#define IPV4_HDR_RSIZE 20
 #define IPV4_PROT_ICMP 1
 #define IPV4_PROT_TCP 6
 #define IPV4_PROT_UDP 17
@@ -56,7 +57,7 @@ struct UniHeader {
 
 extern void GetEtherHeader(const unsigned char *packet, struct ethhdr *header);
 extern void PrintEtherHeader(const struct ethhdr *header);
-extern void GetIPv4Header(const unsigned char *packet, struct IPv4Header *ip_header);
+extern int GetIPv4Header(const unsigned char *packet, int length, struct IPv4Header *ip_header);
 extern void IPAdressToStr(uint32_t addr, char *str);
 extern void PrintIPv4Header(const struct IPv4Header *ip_header);
 extern int GetARPHeader(const unsigned char *packet, int length, struct ARPHeader *header);
