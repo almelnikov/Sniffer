@@ -34,21 +34,27 @@ static void GetEthProtocolStr(unsigned short protocol, char *str) {
   }
 }
 
-void PrintEtherHeader(const struct ethhdr *header) {
+void PrintAddrStr(const unsigned char *data, int length) {
   int i;
-  char protocol_str[64];
+
+  for (i = 0; i < length; i++) {
+    printf("%02hhX", data[i]);
+    if (i != (length - 1)) printf(":");
+  }
+}
+
+void PrintMAC(const unsigned char *data) {
+  PrintAddrStr(data, ETH_ALEN);
+}
+
+void PrintEtherHeader(const struct ethhdr *header) {
+  char protocol_str[PROTOCOL_STR_SIZE];
 
   printf("Ethernet header\n");
   printf("Destination MAC: ");
-  for (i = 0; i < ETH_ALEN; i++) {
-    printf("%02X", (unsigned int)header->h_dest[i]);
-    if (i != (ETH_ALEN - 1)) printf(":");
-  }
+  PrintMAC(header->h_dest);
   printf(" source MAC: ");
-  for (i = 0; i < ETH_ALEN; i++) {
-    printf("%02X", (unsigned int)header->h_source[i]);
-    if (i != (ETH_ALEN - 1)) printf(":");
-  }
+  PrintMAC(header->h_source);
   GetEthProtocolStr(header->h_proto, protocol_str);
   printf(" protocol: %s\n", protocol_str);
 }
@@ -129,8 +135,76 @@ void PrintIPv4Header(const struct IPv4Header *ip_header) {
   printf("Protocol %s. Total length %hu\n", prot_str, ip_header->header.tot_len);
 }
 
+int GetARPHeader(const unsigned char *packet, int length, struct ARPHeader *header) {
+  int addrs_size;
+
+  if (length < ARP_HDR_RSIZE) return -1;
+  memcpy(header, packet, ARP_HDR_RSIZE);
+  header->htype = htons(header->htype);
+  header->ptype = htons(header->ptype);
+  header->oper = htons(header->oper);
+  addrs_size = 2 * ((int)header->hlen + (int)header->plen);
+  if (length < (ARP_HDR_RSIZE + addrs_size)) return -1;
+  header->ptr = malloc(addrs_size);
+  if (header->ptr == NULL) {
+    fprintf(stderr, "Cannot allocate memory in function GetARPHeader\n");
+    exit(-1);
+  }
+  memcpy(header->ptr, packet + ARP_HDR_RSIZE, addrs_size);
+  return 0;
+}
+
+void FreeARPHeader(struct ARPHeader *header) {
+  free(header->ptr);
+}
+
+void PrintProtocolAdress(const unsigned char *addr, int length) {
+  char ip_str[32];
+
+  if (length == 4) {
+    IPAdressToStr(htonl(*((unsigned int*)addr)), ip_str);
+    printf("%s", ip_str);
+  }
+  else {
+    printf("unknown address type");
+  }
+}
+
+void PrintARPHeader(const struct ARPHeader *header) {
+  char protocol_str[PROTOCOL_STR_SIZE];
+  unsigned char *sender_hard = header->ptr;
+  unsigned char *sender_prot = header->ptr + (int)header->hlen;
+  unsigned char *target_hard = header->ptr + (int)header->hlen + (int)header->plen;
+  unsigned char *target_prot = header->ptr + 2 * (int)header->hlen + (int)header->plen;
+
+  printf("ARP header\n");
+  GetEthProtocolStr(header->ptype, protocol_str);
+  printf("Hardware type 0x%04hX, Protocol %s\n", header->htype, protocol_str);
+  printf("Hardware address length:%hhu ", header->hlen);
+  printf("protocol address length:%hhu ", header->plen);
+  if (header->oper == ARP_PROT_REQUEST) {
+    printf("Request\n");
+  } else if (header->oper == ARP_PROT_REPLY) {
+    printf("Reply\n");
+  } else {
+    printf("operation %04hX\n", header->oper);
+  }
+  printf("Sender hardware address: ");
+  PrintAddrStr(sender_hard, header->hlen);
+  printf(" sender protocol address: ");
+  PrintProtocolAdress(sender_prot, header->plen);
+  printf("\n");
+  printf("Target hardware address: ");
+  PrintAddrStr(target_hard, header->hlen);
+  printf(" target protocol address: ");
+  PrintProtocolAdress(target_prot, header->plen);
+  printf("\n");
+}
+
+/*
 int GetAllHeaders(const unsigned char *packet, struct UniHeader *headers) {
   int cnt = 0;
 
   return cnt;
 }
+*/

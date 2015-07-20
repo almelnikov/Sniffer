@@ -24,19 +24,22 @@ void GotPacket(u_char *args, const struct pcap_pkthdr *header,
   struct GetterParams *params = (struct GetterParams*)args;
   time_t sec_time = header->ts.tv_sec;
   uint16_t crc16;
+  int no_eth_length;
   const u_char *eth_hdr_end;
   struct ethhdr eth_header;
   struct IPv4Header ipv4_header;
+  struct ARPHeader arp_header;
 
-  packet_time = localtime(&sec_time);
-  printf("Recived packet, total length: %d\n", header->caplen);
-  strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S", packet_time);
-  printf("%s %06dusec\n", time_buf, (int)header->ts.tv_usec);
 
   GetEtherHeader(packet, &eth_header);
   eth_hdr_end = packet + sizeof(eth_header);
+  no_eth_length = header->caplen - sizeof(eth_header);
 
   if (params->flag_e) {
+    packet_time = localtime(&sec_time);
+    printf("Recived packet, total length: %d\n", header->caplen);
+    strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S", packet_time);
+    printf("%s %06dusec\n", time_buf, (int)header->ts.tv_usec);
     PrintEtherHeader(&eth_header);
     printf("\n");
   }
@@ -51,6 +54,12 @@ void GotPacket(u_char *args, const struct pcap_pkthdr *header,
       printf("Message checkum = 0x%04hX, expectable checksum = 0x%04hX\n",
               crc16, ipv4_header.header.check);
     }
+    printf("\n");
+  }
+  if (params->flag_a && (eth_header.h_proto == ETH_P_ARP)) {
+    GetARPHeader(eth_hdr_end, no_eth_length, &arp_header);
+    PrintARPHeader(&arp_header);
+    FreeARPHeader(&arp_header);
     printf("\n");
   }
   if (params->flag_r) {
@@ -73,7 +82,7 @@ int main(int argc, char *argv[]) {
   int flag_i = 0; // Use custom interface
   struct GetterParams getter_params;
 
-  while ((opt = getopt(argc, argv, "erIn:s:i:")) != -1) {
+  while ((opt = getopt(argc, argv, "erIan:s:i:")) != -1) {
     switch (opt) {
       opt_int = 0;
       case 'e': {  // Print ethernet header
