@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <linux/if_ether.h>
 #include <linux/ip.h>
+#include "crc.h"
 
 #define PROTOCOL_STR_SIZE 32
 
@@ -21,6 +22,8 @@
 #define ARP_HDR_RSIZE 8
 #define ARP_PROT_REQUEST 1
 #define ARP_PROT_REPLY 2
+
+#define ICMP_HDR_SIZE 8
 
 struct IPv4Header {
   struct iphdr header;
@@ -37,22 +40,31 @@ struct ARPHeader {
   unsigned char *ptr;
 };
 
+struct ICMPHeader {
+  uint8_t type;
+  uint8_t code;
+  uint16_t check;
+  uint32_t data;
+};
+
 union HeaderUnion {
   struct ethhdr eth;
   struct IPv4Header ipv4;
   struct ARPHeader arp;
+  struct ICMPHeader icmp;
 };
 
 enum HeaderType {
   HDR_TYPE_ERROR,
   HDR_TYPE_ETH,
   HDR_TYPE_IPV4,
-  HDR_TYPE_ARP
+  HDR_TYPE_ARP,
+  HDR_TYPE_ICMP
 };
 
 struct UniHeader {
   enum HeaderType type;
-  const unsigned char *load_begin;
+  const unsigned char *load_begin, *hdr_begin;
   int load_length;
   union HeaderUnion header;
 };
@@ -66,5 +78,7 @@ extern void PrintIPv4Header(const struct IPv4Header *ip_header);
 extern int GetARPHeader(const unsigned char *packet, int length, struct ARPHeader *header);
 extern void FreeARPHeader(struct ARPHeader *header);
 extern void PrintARPHeader(const struct ARPHeader *header);
+extern void PrintHeader(const struct UniHeader *header);
+extern int GetAllHeaders(const unsigned char *packet, int length, struct UniHeader *headers);
 
 #endif // SNIFFER_PACKETS_H_
