@@ -7,7 +7,7 @@ void GetEtherHeader(const unsigned char *packet, struct ethhdr *header) {
 
 static void GetEthProtocolStr(unsigned short protocol, char *str) {
   switch (protocol) {
-    case ETH_P_LOOPBACK: {
+    case ETH_P_LOOP: {
       strcpy(str, "Ethernet Loopback");
       break;
     }
@@ -280,7 +280,7 @@ void PrintTCPHeader(const struct TCPHeader *tcp_header) {
 }
 
 void PrintUDPHeader(const struct UDPHeader *udp_header) {
-  printf("TCP packet\n");
+  printf("UDP packet\n");
   printf("Destination port: %hu ", udp_header->header.dest);
   printf("source port: %hu\n", udp_header->header.source);
   printf("Length: %hu\n", udp_header->header.len);
@@ -303,6 +303,7 @@ void PrintChecksum(const struct UniHeader *header) {
   int length;
 
   length = (header->load_begin - header->hdr_begin) + header->load_length;
+  //printf("Checksum length = %d\n", length);
   switch (header->type) {
     case HDR_TYPE_IPV4: {
       packet_crc = header->header.ipv4.header.check;
@@ -318,7 +319,7 @@ void PrintChecksum(const struct UniHeader *header) {
       break;
     }
     case HDR_TYPE_UDP: {
-      packet_crc = header->header.tcp.header.check;
+      packet_crc = header->header.udp.header.check;
       calc_crc = CRC16UDP(header->hdr_begin, length, header->header.udp.pseudo);
       flag_print = 1;
       break;
@@ -399,10 +400,13 @@ int GetOverIPHeader(const unsigned char *packet, int length, int protocol,
                     const struct IPv4Header *ip_hdr, struct UniHeader *header) {
   struct ICMPHeader *icmp_hdr_ptr;
   struct TCPHeader *tcp_hdr_ptr;
+  struct UDPHeader *udp_hdr_ptr;
   int ret;
+  uint16_t tcp_length;
 
   header->type = HDR_TYPE_ERROR;
   header->hdr_begin = packet;
+  tcp_length = ip_hdr->header.tot_len - ip_hdr->header.ihl * 4;
   if (protocol == IPV4_PROT_ICMP) {
     icmp_hdr_ptr = &header->header.icmp;
     ret = GetICMPHeader(packet, length, icmp_hdr_ptr);
@@ -415,10 +419,22 @@ int GetOverIPHeader(const unsigned char *packet, int length, int protocol,
     tcp_hdr_ptr = &header->header.tcp;
     ret = GetTCPHeader(packet, length, tcp_hdr_ptr);
     if (ret == 0) {
+      //printf("TCP = %hu RAW = %d\n", tcp_length, length);
       header->type = HDR_TYPE_TCP;
       header->load_begin = packet + tcp_hdr_ptr->header.doff * 4;
-      header->load_length = length - tcp_hdr_ptr->header.doff * 4;
-      FormPseudoHeader(ip_hdr, (uint16_t)length, tcp_hdr_ptr->pseudo);
+      //header->load_length = length - tcp_hdr_ptr->header.doff * 4;
+      header->load_length = tcp_length - tcp_hdr_ptr->header.doff * 4;
+      FormPseudoHeader(ip_hdr, tcp_length, tcp_hdr_ptr->pseudo);
+    } else return -1;
+  } else if (protocol == IPV4_PROT_UDP) {
+    udp_hdr_ptr = &header->header.udp;
+    ret = GetUDPHeader(packet, length, udp_hdr_ptr);
+    if (ret == 0) {
+      header->type = HDR_TYPE_UDP;
+      header->load_begin = packet + UDP_HDR_SIZE;
+      header->load_length = length - udp_hdr_ptr->header.len;
+      FormPseudoHeader(ip_hdr, header->load_length + UDP_HDR_SIZE,
+                       udp_hdr_ptr->pseudo);
     } else return -1;
   }
   return 0;

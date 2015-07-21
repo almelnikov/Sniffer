@@ -19,7 +19,7 @@ uint16_t CRC16Network(const unsigned char *data, int length, uint16_t acc) {
 }
 
 uint16_t CRC16IPv4(const unsigned char *data, int length) {
-  int acc;
+  uint16_t acc;
   static const int kCheckPos = 10;
   static const int kNextPos = 12;
 
@@ -29,7 +29,7 @@ uint16_t CRC16IPv4(const unsigned char *data, int length) {
 }
 
 uint16_t CRC16ICMP(const unsigned char *data, int length) {
-  int acc;
+  uint16_t acc;
 
   acc = CRC16Network(data, 2, 0);
   acc = CRC16Network(data + 4, length - 4, acc);
@@ -38,7 +38,7 @@ uint16_t CRC16ICMP(const unsigned char *data, int length) {
 
 uint16_t CRC16TCP(const unsigned char *data, int length,
                   const unsigned char *pseudo) {
-  int acc;
+  uint16_t acc;
   static const int kCheckPos = 16;
   static const int kNextPos = 18;
 
@@ -49,7 +49,7 @@ uint16_t CRC16TCP(const unsigned char *data, int length,
 }
 uint16_t CRC16UDP(const unsigned char *data, int length,
                   const unsigned char *pseudo) {
-  int acc;
+  uint16_t acc;
   static const int kCheckPos = 6;
   static const int kNextPos = 8;
 

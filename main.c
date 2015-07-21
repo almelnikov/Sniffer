@@ -19,6 +19,7 @@ struct GetterParams {
   char flag_A;
   char flag_C;
   char flag_T;
+  char flag_U;
   char flag_a;
 };
 
@@ -58,6 +59,15 @@ int CheckContainTCP(const struct UniHeader *headers, int cnt) {
   return result;
 }
 
+int CheckContainUDP(const struct UniHeader *headers, int cnt) {
+  int result = 0;
+
+  if (cnt >= 3) {
+    if (headers[2].type == HDR_TYPE_UDP) result = 1;
+  }
+  return result;
+}
+
 void GotPacket(u_char *args, const struct pcap_pkthdr *header,
      const u_char *packet) {
   char time_buf[64];
@@ -79,8 +89,11 @@ void GotPacket(u_char *args, const struct pcap_pkthdr *header,
   if (params.flag_C) {
     print_flag |= CheckContainICMP(headers, cnt);
   }
-  if (params.flag_C) {
+  if (params.flag_T) {
     print_flag |= CheckContainTCP(headers, cnt);
+  }
+  if (params.flag_U) {
+    print_flag |= CheckContainUDP(headers, cnt);
   }
   if (params.flag_a) print_flag = 1;
   if (print_flag) {
@@ -102,7 +115,7 @@ void GotPacket(u_char *args, const struct pcap_pkthdr *header,
       if (params.flag_A) {
         PrintHeader(&headers[1]);
       }
-      if (params.flag_C) {
+      if (params.flag_C || params.flag_T || params.flag_U) {
         PrintHeader(&headers[2]);
       }
     }
@@ -172,7 +185,7 @@ int main(int argc, char *argv[]) {
   pcap_t *handle_dev;
   char errbuf[PCAP_ERRBUF_SIZE];
   char interface_str[INTERFACE_STR_SIZE], *dev_str;
-  int buffer_size = 2048;
+  int buffer_size = 10000;
   int repeat_cnt = 1;
   int opt, ret, opt_int;
   int flag_e = 0; // Print ethernet header
@@ -183,9 +196,10 @@ int main(int argc, char *argv[]) {
   int flag_i = 0; // Use custom interface
   int flag_C = 0; // Print ICMP headers
   int flag_T = 0; // Print TCP headers
+  int flag_U = 0; // Print UDP headers
   struct GetterParams getter_params;
 
-  while ((opt = getopt(argc, argv, "erIACTan:s:i:")) != -1) {
+  while ((opt = getopt(argc, argv, "erIACTUan:s:i:")) != -1) {
     switch (opt) {
       opt_int = 0;
       case 'e': {  // Print ethernet header
@@ -209,7 +223,11 @@ int main(int argc, char *argv[]) {
         break;
       }
       case 'T': {  // Print TCP headers
-        flag_C = 1;
+        flag_T = 1;
+        break;
+      }
+      case 'U': {  // Print UDP headers
+        flag_U = 1;
         break;
       }
       case 'a': {  // Print all packets
@@ -249,6 +267,7 @@ int main(int argc, char *argv[]) {
   getter_params.flag_a = flag_a;
   getter_params.flag_C = flag_C;
   getter_params.flag_T = flag_T;
+  getter_params.flag_U = flag_U;
 
   if (flag_i == 0) {
     dev_str = pcap_lookupdev(errbuf);
