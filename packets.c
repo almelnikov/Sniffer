@@ -245,8 +245,6 @@ int GetTCPHeader(const unsigned char *packet, int length,
   tcp_header->header.window = ntohs(tcp_header->header.window);
   tcp_header->header.check = ntohs(tcp_header->header.check);
   tcp_header->header.urg_ptr = ntohs(tcp_header->header.urg_ptr);
-  //*(uint16_t*)(packet + 12) = ntohs(*(uint16_t*)(packet + 12));
-
 
   if (length < tcp_header->header.doff * 4) return -1;
   if (tcp_header->header.doff > 5) {
@@ -281,6 +279,24 @@ void PrintTCPHeader(const struct TCPHeader *tcp_header) {
   printf("FIN: %hu\n", tcp_header->header.fin);
 }
 
+void PrintUDPHeader(const struct UDPHeader *udp_header) {
+  printf("TCP packet\n");
+  printf("Destination port: %hu ", udp_header->header.dest);
+  printf("source port: %hu\n", udp_header->header.source);
+  printf("Length: %hu\n", udp_header->header.len);
+}
+
+int GetUDPHeader(const unsigned char *packet, int length,
+                  struct UDPHeader *udp_header) {
+  if (length < IPV4_HDR_RSIZE) return -1;
+  memcpy(&udp_header->header, packet, sizeof(struct udphdr));
+  udp_header->header.source = ntohs(udp_header->header.source);
+  udp_header->header.dest = ntohs(udp_header->header.dest);
+  udp_header->header.len = ntohs(udp_header->header.len);
+  udp_header->header.check = ntohs(udp_header->header.check);
+  return 0;
+}
+
 void PrintChecksum(const struct UniHeader *header) {
   uint16_t packet_crc, calc_crc;
   int flag_print = 0;
@@ -298,6 +314,12 @@ void PrintChecksum(const struct UniHeader *header) {
     case HDR_TYPE_TCP: {
       packet_crc = header->header.tcp.header.check;
       calc_crc = CRC16TCP(header->hdr_begin, length, header->header.tcp.pseudo);
+      flag_print = 1;
+      break;
+    }
+    case HDR_TYPE_UDP: {
+      packet_crc = header->header.tcp.header.check;
+      calc_crc = CRC16UDP(header->hdr_begin, length, header->header.udp.pseudo);
       flag_print = 1;
       break;
     }
@@ -344,6 +366,10 @@ void PrintHeader(const struct UniHeader *header) {
     }
     case HDR_TYPE_TCP: {
       PrintTCPHeader(&header->header.tcp);
+      break;
+    }
+    case HDR_TYPE_UDP: {
+      PrintUDPHeader(&header->header.udp);
       break;
     }
     case HDR_TYPE_ERROR: {

@@ -9,11 +9,10 @@
 #include <linux/if_ether.h>
 #include <linux/ip.h>
 #include <linux/tcp.h>
+#include <linux/udp.h>
 #include "crc.h"
 
 #define PROTOCOL_STR_SIZE 32
-
-#define IPV4_PSEUDOHDR_SIZE 12
 
 #define IPV4_HDR_RSIZE 20
 #define IPV4_PROT_ICMP 1
@@ -28,6 +27,8 @@
 
 #define ICMP_HDR_SIZE 8
 
+#define UDP_HDR_SIZE 8
+
 #define TCP_HDR_RSIZE 20
 
 struct IPv4Header {
@@ -41,6 +42,11 @@ struct TCPHeader {
   unsigned char pseudo[IPV4_PSEUDOHDR_SIZE];
   uint32_t options[10];
   char opt_length;
+};
+
+struct UDPHeader {
+  struct udphdr header;
+  unsigned char pseudo[IPV4_PSEUDOHDR_SIZE];
 };
 
 struct ARPHeader {
@@ -65,6 +71,7 @@ union HeaderUnion {
   struct ARPHeader arp;
   struct ICMPHeader icmp;
   struct TCPHeader tcp;
+  struct UDPHeader udp;
 };
 
 enum HeaderType {
@@ -73,7 +80,8 @@ enum HeaderType {
   HDR_TYPE_IPV4,
   HDR_TYPE_ARP,
   HDR_TYPE_ICMP,
-  HDR_TYPE_TCP
+  HDR_TYPE_TCP,
+  HDR_TYPE_UDP
 };
 
 struct UniHeader {
