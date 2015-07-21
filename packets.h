@@ -44,6 +44,7 @@ union HeaderUnion {
 };
 
 enum HeaderType {
+  HDR_TYPE_ERROR,
   HDR_TYPE_ETH,
   HDR_TYPE_IPV4,
   HDR_TYPE_ARP
@@ -51,7 +52,8 @@ enum HeaderType {
 
 struct UniHeader {
   enum HeaderType type;
-  int load_begin, load_end;
+  const unsigned char *load_begin;
+  int load_length;
   union HeaderUnion header;
 };
 

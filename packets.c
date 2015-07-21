@@ -204,21 +204,69 @@ void PrintARPHeader(const struct ARPHeader *header) {
   printf("\n");
 }
 
-/*
+
+void PrintHeader(struct UniHeader *header) {
+  switch (header->type) {
+    case HDR_TYPE_ETH: {
+      PrintEtherHeader(&header->header.eth);
+      break;
+    }
+    case HDR_TYPE_IPV4: {
+      PrintIPv4Header(&header->header.ipv4);
+      break;
+    }
+    case HDR_TYPE_ARP: {
+      PrintARPHeader(&header->header.arp);
+      break;
+    }
+    case HDR_TYPE_ERROR: {
+      printf("Packet have size less than header field\n");
+      break;
+    }
+  }
+}
+
 int GetAllHeaders(const unsigned char *packet, int length, struct UniHeader *headers) {
   int cnt = 0;
+  int ret, no_eth_length;
+  int ipv4_packet_size;
   const unsigned char *eth_hdr_end;
   struct ethhdr eth_header;
-  struct IPv4Header ipv4_header;
-  struct ARPHeader arp_header;
+  struct IPv4Header *ipv4_hdr_ptr;
+  struct ARPHeader *arp_hdr_ptr;
 
+  if (length < sizeof(eth_header)) return 0;
   GetEtherHeader(packet, &eth_header);
   eth_hdr_end = packet + sizeof(eth_header);
+  no_eth_length = length - sizeof(eth_header);
   headers[0].type = HDR_TYPE_ETH;
   headers[0].header.eth = eth_header;
   headers[0].load_begin = eth_hdr_end;
-  headers[0].load_end = packet + length;  // ?
+  headers[0].load_length = no_eth_length;
+  cnt++;
+  if (eth_header.h_proto == ETH_P_IP) {
+    ipv4_hdr_ptr = &headers[1].header.ipv4;
+    ret = GetIPv4Header(eth_hdr_end, no_eth_length, ipv4_hdr_ptr);
+    if (ret == 0) {
+      headers[1].type = HDR_TYPE_IPV4;
+      ipv4_packet_size = ipv4_hdr_ptr->header.ihl * 4;
+      headers[1].load_begin = eth_hdr_end + ipv4_packet_size;
+      headers[1].load_length = no_eth_length - ipv4_packet_size;
+    } else {
+      headers[1].type = HDR_TYPE_ERROR;
+    }
+  } else if (eth_header.h_proto == ETH_P_ARP) {
+    arp_hdr_ptr = &headers[1].header.arp;
+    ret = GetARPHeader(eth_hdr_end, no_eth_length, arp_hdr_ptr);
+    if (ret == 0) {
+      headers[1].type = HDR_TYPE_ARP;
+      headers[1].load_begin = 0;
+      headers[1].load_length = 0;
+    } else {
+      headers[1].type = HDR_TYPE_ERROR;
+    }
+  }
+  cnt++;
 
   return cnt;
 }
-*/

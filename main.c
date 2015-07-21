@@ -14,6 +14,7 @@ struct GetterParams {
   char flag_e;
   char flag_r;
   char flag_I;
+  char flag_A;
   char flag_a;
 };
 
@@ -56,7 +57,7 @@ void GotPacket(u_char *args, const struct pcap_pkthdr *header,
     }
     printf("\n");
   }
-  if (params->flag_a && (eth_header.h_proto == ETH_P_ARP)) {
+  if (params->flag_A && (eth_header.h_proto == ETH_P_ARP)) {
     GetARPHeader(eth_hdr_end, no_eth_length, &arp_header);
     PrintARPHeader(&arp_header);
     FreeARPHeader(&arp_header);
@@ -77,12 +78,13 @@ int main(int argc, char *argv[]) {
   int opt, ret, opt_int;
   int flag_e = 0; // Print ethernet header
   int flag_I = 0; // Print internet layer headers
-  int flag_a = 0; // Print ARP headers
+  int flag_A = 0; // Print ARP headers
+  int flag_a = 0; // Print all packets
   int flag_r = 0; // Print raw data
   int flag_i = 0; // Use custom interface
   struct GetterParams getter_params;
 
-  while ((opt = getopt(argc, argv, "erIan:s:i:")) != -1) {
+  while ((opt = getopt(argc, argv, "erIAan:s:i:")) != -1) {
     switch (opt) {
       opt_int = 0;
       case 'e': {  // Print ethernet header
@@ -97,7 +99,11 @@ int main(int argc, char *argv[]) {
         flag_I = 1;
         break;
       }
-      case 'a': {  // Print ARP headers
+      case 'A': {  // Print ARP headers
+        flag_A = 1;
+        break;
+      }
+      case 'a': {  // Print all packets
         flag_a = 1;
         break;
       }
@@ -130,6 +136,7 @@ int main(int argc, char *argv[]) {
   getter_params.flag_e = flag_e;
   getter_params.flag_r = flag_r;
   getter_params.flag_I = flag_I;
+  getter_params.flag_A = flag_A;
   getter_params.flag_a = flag_a;
 
   if (flag_i == 0) {
