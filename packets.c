@@ -79,7 +79,7 @@ int GetIPv4Header(const unsigned char *packet, int length,
     ip_header->opt_length = 0;
   }
   for (i = 0; i < ip_header->opt_length; i++) {
-    ip_header->options[i] = *(uint32_t*)(packet + sizeof(*ip_header));
+    ip_header->options[i] = *(uint32_t*)(packet + IPV4_HDR_RSIZE + i*4);
     ip_header->options[i] = ntohl(ip_header->options[i]);
   }
   return 0;
@@ -232,11 +232,61 @@ void PrintICMPHeader(const struct ICMPHeader *header) {
   }
 }
 
+int GetTCPHeader(const unsigned char *packet, int length,
+                  struct TCPHeader *tcp_header) {
+  int i;
+
+  if (length < IPV4_HDR_RSIZE) return -1;
+  memcpy(&tcp_header->header, packet, sizeof(struct tcphdr));
+  tcp_header->header.source = ntohs(tcp_header->header.source);
+  tcp_header->header.dest = ntohs(tcp_header->header.dest);
+  tcp_header->header.seq = ntohl(tcp_header->header.seq);
+  tcp_header->header.ack_seq = ntohl(tcp_header->header.ack_seq);
+  tcp_header->header.window = ntohs(tcp_header->header.window);
+  tcp_header->header.check = ntohs(tcp_header->header.check);
+  tcp_header->header.urg_ptr = ntohs(tcp_header->header.urg_ptr);
+  //*(uint16_t*)(packet + 12) = ntohs(*(uint16_t*)(packet + 12));
+
+
+  if (length < tcp_header->header.doff * 4) return -1;
+  if (tcp_header->header.doff > 5) {
+    tcp_header->opt_length = tcp_header->header.doff - 5;
+  } else {
+    tcp_header->opt_length = 0;
+  }
+  for (i = 0; i < tcp_header->opt_length; i++) {
+    tcp_header->options[i] = *(uint32_t*)(packet + TCP_HDR_RSIZE + i*4);
+    tcp_header->options[i] = ntohl(tcp_header->options[i]);
+  }
+  return 0;
+}
+
+void PrintTCPHeader(const struct TCPHeader *tcp_header) {
+  printf("TCP packet\n");
+  printf("Destination port: %hu ", tcp_header->header.dest);
+  printf("source port: %hu\n", tcp_header->header.source);
+  printf("Sequence number: 0x%X ", tcp_header->header.seq);
+  printf("acknowledgment number: 0x%X\n", tcp_header->header.ack_seq);
+  printf("Window size: %hu ", tcp_header->header.window);
+  printf("urgent pointer: %hu\n", tcp_header->header.urg_ptr);
+  // print flags
+  printf("Data offset: %hu ", tcp_header->header.doff);
+  printf("CWR: %hu ", tcp_header->header.cwr);
+  printf("ECE: %hu ", tcp_header->header.ece);
+  printf("URG: %hu\n", tcp_header->header.urg);
+  printf("ACK: %hu ", tcp_header->header.ack);
+  printf("PSH: %hu ", tcp_header->header.psh);
+  printf("RST: %hu ", tcp_header->header.rst);
+  printf("SYN: %hu ", tcp_header->header.syn);
+  printf("FIN: %hu\n", tcp_header->header.fin);
+}
+
 void PrintChecksum(const struct UniHeader *header) {
   uint16_t packet_crc, calc_crc;
   int flag_print = 0;
   int length;
 
+  length = (header->load_begin - header->hdr_begin) + header->load_length;
   switch (header->type) {
     case HDR_TYPE_IPV4: {
       packet_crc = header->header.ipv4.header.check;
@@ -245,9 +295,14 @@ void PrintChecksum(const struct UniHeader *header) {
       flag_print = 1;
       break;
     }
+    case HDR_TYPE_TCP: {
+      packet_crc = header->header.tcp.header.check;
+      calc_crc = CRC16TCP(header->hdr_begin, length, header->header.tcp.pseudo);
+      flag_print = 1;
+      break;
+    }
     case HDR_TYPE_ICMP: {
       packet_crc = header->header.icmp.check;
-      length = (header->load_begin - header->hdr_begin) + header->load_length;
       calc_crc = CRC16ICMP(header->hdr_begin, length);
       flag_print = 1;
       break;
@@ -287,6 +342,10 @@ void PrintHeader(const struct UniHeader *header) {
       PrintICMPHeader(&header->header.icmp);
       break;
     }
+    case HDR_TYPE_TCP: {
+      PrintTCPHeader(&header->header.tcp);
+      break;
+    }
     case HDR_TYPE_ERROR: {
       printf("Packet have size less than header field\n");
       break;
@@ -295,9 +354,25 @@ void PrintHeader(const struct UniHeader *header) {
   PrintChecksum(header);
 }
 
+void FormPseudoHeader(const struct IPv4Header *ip_hdr, uint16_t length,
+                      unsigned char *pseudo) {
+    uint32_t netip;
+    uint16_t netlen;
+
+    netip = htonl(ip_hdr->header.saddr);
+    memcpy(pseudo, &netip, 4);
+    netip = htonl(ip_hdr->header.daddr);
+    memcpy(pseudo + 4, &netip, 4);
+    pseudo[8] = 0;
+    pseudo[9] = ip_hdr->header.protocol;
+    netlen = htons(length);
+    memcpy(pseudo + 10, &netlen, 2);
+}
+
 int GetOverIPHeader(const unsigned char *packet, int length, int protocol,
-                    struct UniHeader *header) {
+                    const struct IPv4Header *ip_hdr, struct UniHeader *header) {
   struct ICMPHeader *icmp_hdr_ptr;
+  struct TCPHeader *tcp_hdr_ptr;
   int ret;
 
   header->type = HDR_TYPE_ERROR;
@@ -309,6 +384,15 @@ int GetOverIPHeader(const unsigned char *packet, int length, int protocol,
       header->type = HDR_TYPE_ICMP;
       header->load_begin = packet + ICMP_HDR_SIZE;
       header->load_length = length - ICMP_HDR_SIZE;
+    } else return -1;
+  } else if (protocol == IPV4_PROT_TCP) {
+    tcp_hdr_ptr = &header->header.tcp;
+    ret = GetTCPHeader(packet, length, tcp_hdr_ptr);
+    if (ret == 0) {
+      header->type = HDR_TYPE_TCP;
+      header->load_begin = packet + tcp_hdr_ptr->header.doff * 4;
+      header->load_length = length - tcp_hdr_ptr->header.doff * 4;
+      FormPseudoHeader(ip_hdr, (uint16_t)length, tcp_hdr_ptr->pseudo);
     } else return -1;
   }
   return 0;
@@ -344,7 +428,8 @@ int GetAllHeaders(const unsigned char *packet, int length,
       headers[1].load_begin = eth_hdr_end + ipv4_packet_size;
       headers[1].load_length = no_eth_length - ipv4_packet_size;
       ret = GetOverIPHeader(headers[1].load_begin, headers[1].load_length,
-                            ipv4_hdr_ptr->header.protocol, &headers[2]);
+                            ipv4_hdr_ptr->header.protocol, ipv4_hdr_ptr,
+                            &headers[2]);
       if (ret == 0) cnt++;
     } else {
       headers[1].type = HDR_TYPE_ERROR;

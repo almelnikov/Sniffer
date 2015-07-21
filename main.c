@@ -18,6 +18,7 @@ struct GetterParams {
   char flag_I;
   char flag_A;
   char flag_C;
+  char flag_T;
   char flag_a;
 };
 
@@ -25,8 +26,7 @@ int CheckContainIPv4(const struct UniHeader *headers, int cnt) {
   int result = 0;
 
   if (cnt >= 2) {
-    if (headers[1].type == HDR_TYPE_IPV4)
-      result = 1;
+    if (headers[1].type == HDR_TYPE_IPV4) result = 1;
   }
   return result;
 }
@@ -35,8 +35,7 @@ int CheckContainARP(const struct UniHeader *headers, int cnt) {
   int result = 0;
 
   if (cnt >= 2) {
-    if (headers[1].type == HDR_TYPE_ARP)
-      result = 1;
+    if (headers[1].type == HDR_TYPE_ARP) result = 1;
   }
   return result;
 }
@@ -45,8 +44,16 @@ int CheckContainICMP(const struct UniHeader *headers, int cnt) {
   int result = 0;
 
   if (cnt >= 3) {
-    if (headers[2].type == HDR_TYPE_ICMP)
-      result = 1;
+    if (headers[2].type == HDR_TYPE_ICMP) result = 1;
+  }
+  return result;
+}
+
+int CheckContainTCP(const struct UniHeader *headers, int cnt) {
+  int result = 0;
+
+  if (cnt >= 3) {
+    if (headers[2].type == HDR_TYPE_TCP) result = 1;
   }
   return result;
 }
@@ -64,14 +71,16 @@ void GotPacket(u_char *args, const struct pcap_pkthdr *header,
 
   cnt = GetAllHeaders(packet, length, headers);
   if (params.flag_I) {
-    print_flag = CheckContainIPv4(headers, cnt);
+    print_flag |= CheckContainIPv4(headers, cnt);
   }
   if (params.flag_A) {
-    print_flag = CheckContainARP(headers, cnt);
+    print_flag |= CheckContainARP(headers, cnt);
   }
-  
   if (params.flag_C) {
-    print_flag = CheckContainICMP(headers, cnt);
+    print_flag |= CheckContainICMP(headers, cnt);
+  }
+  if (params.flag_C) {
+    print_flag |= CheckContainTCP(headers, cnt);
   }
   if (params.flag_a) print_flag = 1;
   if (print_flag) {
@@ -173,9 +182,10 @@ int main(int argc, char *argv[]) {
   int flag_r = 0; // Print raw data
   int flag_i = 0; // Use custom interface
   int flag_C = 0; // Print ICMP headers
+  int flag_T = 0; // Print TCP headers
   struct GetterParams getter_params;
 
-  while ((opt = getopt(argc, argv, "erIACan:s:i:")) != -1) {
+  while ((opt = getopt(argc, argv, "erIACTan:s:i:")) != -1) {
     switch (opt) {
       opt_int = 0;
       case 'e': {  // Print ethernet header
@@ -195,6 +205,10 @@ int main(int argc, char *argv[]) {
         break;
       }
       case 'C': {  // Print ICMP headers
+        flag_C = 1;
+        break;
+      }
+      case 'T': {  // Print TCP headers
         flag_C = 1;
         break;
       }
@@ -234,6 +248,7 @@ int main(int argc, char *argv[]) {
   getter_params.flag_A = flag_A;
   getter_params.flag_a = flag_a;
   getter_params.flag_C = flag_C;
+  getter_params.flag_T = flag_T;
 
   if (flag_i == 0) {
     dev_str = pcap_lookupdev(errbuf);

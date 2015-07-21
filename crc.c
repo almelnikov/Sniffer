@@ -34,3 +34,16 @@ uint16_t CRC16ICMP(const unsigned char *data, int length) {
   acc = CRC16Network(data + 4, length - 4, acc);
   return ~acc;
 }
+
+uint16_t CRC16TCP(const unsigned char *data, int length,
+                  const unsigned char *pseudo) {
+  int acc;
+  static const int kCheckPos = 16;
+  static const int kNextPos = 18;
+  static const int kPseudoSize = 12;
+
+  acc = CRC16Network(pseudo, kPseudoSize, 0);
+  acc = CRC16Network(data, kCheckPos, acc);
+  acc = CRC16Network(data + kNextPos, length - kNextPos, acc);
+  return ~acc;
+}
