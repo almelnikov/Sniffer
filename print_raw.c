@@ -1,6 +1,7 @@
 #include "print_raw.h"
 
-void PrintRawChunk(int pos, const unsigned char *data, int length, int tab) {
+static void PrintRawChunk(int pos, const unsigned char *data, int length,
+                          int tab) {
   int i;
 
   printf("%04d:  ", pos);

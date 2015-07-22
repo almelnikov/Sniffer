@@ -29,7 +29,7 @@ static void GetEthProtocolStr(unsigned short protocol, char *str) {
   }
 }
 
-void PrintAddrStr(const unsigned char *data, int length) {
+static void PrintAddrStr(const unsigned char *data, int length) {
   int i;
 
   for (i = 0; i < length; i++) {
@@ -38,11 +38,11 @@ void PrintAddrStr(const unsigned char *data, int length) {
   }
 }
 
-void PrintMAC(const unsigned char *data) {
+static void PrintMAC(const unsigned char *data) {
   PrintAddrStr(data, ETH_ALEN);
 }
 
-void IPAdressToStr(uint32_t addr, char *str) {
+static void IPAdressToStr(uint32_t addr, char *str) {
   unsigned int bytes[8];
   bytes[0] = addr & 0xFF;
   bytes[1] = (addr >> 8) & 0xFF;
@@ -51,7 +51,7 @@ void IPAdressToStr(uint32_t addr, char *str) {
   sprintf(str, "%u.%u.%u.%u", bytes[3], bytes[2], bytes[1], bytes[0]);
 }
 
-void PrintEtherHeader(const struct ethhdr *header) {
+static void PrintEtherHeader(const struct ethhdr *header) {
   char protocol_str[PROTOCOL_STR_SIZE];
 
   printf("Ethernet header\n");
@@ -92,8 +92,8 @@ static void GetIPProtocolStr(unsigned char protocol, char *str) {
   }
 }
 
-void PrintIPv4Header(const struct IPv4Header *ip_header) {
-  char dest_str[32], source_str[32], prot_str[32];
+static void PrintIPv4Header(const struct IPv4Header *ip_header) {
+ char dest_str[32], source_str[32], prot_str[32];
 
   IPAdressToStr(ip_header->header.daddr, dest_str);
   IPAdressToStr(ip_header->header.saddr, source_str);
@@ -108,7 +108,7 @@ void PrintIPv4Header(const struct IPv4Header *ip_header) {
   printf("Protocol %s. Total length %hu\n", prot_str, ip_header->header.tot_len);
 }
 
-void PrintProtocolAdress(const unsigned char *addr, int length) {
+static void PrintProtocolAdress(const unsigned char *addr, int length) {
   char ip_str[32];
 
   if (length == 4) {
@@ -120,7 +120,7 @@ void PrintProtocolAdress(const unsigned char *addr, int length) {
   }
 }
 
-void PrintARPHeader(const struct ARPHeader *header) {
+static void PrintARPHeader(const struct ARPHeader *header) {
   char protocol_str[PROTOCOL_STR_SIZE];
   unsigned char *sender_hard = header->ptr;
   unsigned char *sender_prot = header->ptr + (int)header->hlen;
@@ -151,7 +151,7 @@ void PrintARPHeader(const struct ARPHeader *header) {
   printf("\n");
 }
 
-void PrintICMPHeader(const struct ICMPHeader *header) {
+static void PrintICMPHeader(const struct ICMPHeader *header) {
   uint16_t id, seq_num;
 
   id = header->data && 0xFFFF;
@@ -168,7 +168,7 @@ void PrintICMPHeader(const struct ICMPHeader *header) {
   }
 }
 
-void PrintTCPHeader(const struct TCPHeader *tcp_header) {
+static void PrintTCPHeader(const struct TCPHeader *tcp_header) {
   printf("TCP packet\n");
   printf("Destination port: %hu ", tcp_header->header.dest);
   printf("source port: %hu\n", tcp_header->header.source);
@@ -188,14 +188,14 @@ void PrintTCPHeader(const struct TCPHeader *tcp_header) {
   printf("FIN: %hu\n", tcp_header->header.fin);
 }
 
-void PrintUDPHeader(const struct UDPHeader *udp_header) {
+static void PrintUDPHeader(const struct UDPHeader *udp_header) {
   printf("UDP packet\n");
   printf("Destination port: %hu ", udp_header->header.dest);
   printf("source port: %hu\n", udp_header->header.source);
   printf("Length: %hu\n", udp_header->header.len);
 }
 
-void PrintChecksum(const struct UniHeader *header) {
+static void PrintChecksum(const struct UniHeader *header) {
   uint16_t packet_crc, calc_crc;
   int flag_print = 0;
   int length;

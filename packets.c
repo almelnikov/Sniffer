@@ -1,11 +1,11 @@
 #include "packets.h"
 
-void GetEtherHeader(const unsigned char *packet, struct ethhdr *header) {
+static void GetEtherHeader(const unsigned char *packet, struct ethhdr *header) {
   memcpy(header, packet, sizeof(*header));  // Packed struct
   header->h_proto = ntohs(header->h_proto);
 }
 
-int GetIPv4Header(const unsigned char *packet, int length,
+static int GetIPv4Header(const unsigned char *packet, int length,
                   struct IPv4Header *ip_header) {
   int i;
 
@@ -31,7 +31,7 @@ int GetIPv4Header(const unsigned char *packet, int length,
   return 0;
 }
 
-int GetARPHeader(const unsigned char *packet, int length,
+static int GetARPHeader(const unsigned char *packet, int length,
                  struct ARPHeader *header) {
   int addrs_size;
 
@@ -51,11 +51,11 @@ int GetARPHeader(const unsigned char *packet, int length,
   return 0;
 }
 
-void FreeARPHeader(const struct ARPHeader *header) {
+static void FreeARPHeader(const struct ARPHeader *header) {
   free(header->ptr);
 }
 
-int GetICMPHeader(const unsigned char *packet, int length,
+static int GetICMPHeader(const unsigned char *packet, int length,
                   struct ICMPHeader *header) {
   if (length < ICMP_HDR_SIZE) return -1;
   header->type = packet[0];
@@ -64,7 +64,7 @@ int GetICMPHeader(const unsigned char *packet, int length,
   return 0;
 }
 
-int GetTCPHeader(const unsigned char *packet, int length,
+static int GetTCPHeader(const unsigned char *packet, int length,
                   struct TCPHeader *tcp_header) {
   int i;
 
@@ -91,7 +91,7 @@ int GetTCPHeader(const unsigned char *packet, int length,
   return 0;
 }
 
-int GetUDPHeader(const unsigned char *packet, int length,
+static int GetUDPHeader(const unsigned char *packet, int length,
                   struct UDPHeader *udp_header) {
   if (length < IPV4_HDR_RSIZE) return -1;
   memcpy(&udp_header->header, packet, sizeof(struct udphdr));
@@ -102,7 +102,7 @@ int GetUDPHeader(const unsigned char *packet, int length,
   return 0;
 }
 
-void FormPseudoHeader(const struct IPv4Header *ip_hdr, uint16_t length,
+static void FormPseudoHeader(const struct IPv4Header *ip_hdr, uint16_t length,
                       unsigned char *pseudo) {
     uint32_t netip;
     uint16_t netlen;
@@ -117,7 +117,7 @@ void FormPseudoHeader(const struct IPv4Header *ip_hdr, uint16_t length,
     memcpy(pseudo + 10, &netlen, 2);
 }
 
-int GetOverIPHeader(const unsigned char *packet, int length, int protocol,
+static int GetOverIPHeader(const unsigned char *packet, int length, int protocol,
                     const struct IPv4Header *ip_hdr, struct UniHeader *header) {
   struct ICMPHeader *icmp_hdr_ptr;
   struct TCPHeader *tcp_hdr_ptr;
