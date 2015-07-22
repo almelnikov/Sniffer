@@ -159,7 +159,7 @@ int GetARPHeader(const unsigned char *packet, int length,
   return 0;
 }
 
-void FreeARPHeader(struct ARPHeader *header) {
+void FreeARPHeader(const struct ARPHeader *header) {
   free(header->ptr);
 }
 
@@ -488,4 +488,14 @@ int GetAllHeaders(const unsigned char *packet, int length,
   }
 
   return cnt;
+}
+
+void ReallocateHeaders(const struct UniHeader *headers, int cnt) {
+  int i;
+
+  for (i = 0; i < cnt; i++) {
+    if (headers[i].type == HDR_TYPE_ARP) {
+      FreeARPHeader(&headers[i].header.arp);
+    }
+  }
 }

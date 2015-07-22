@@ -109,10 +109,7 @@ void GotPacket(u_char *args, const struct pcap_pkthdr *header,
       if (params.flag_e) {
         PrintHeader(&headers[0]);
       }
-      if (params.flag_I) {
-        PrintHeader(&headers[1]);
-      }
-      if (params.flag_A) {
+      if (params.flag_I || params.flag_A) {
         PrintHeader(&headers[1]);
       }
       if (params.flag_C || params.flag_T || params.flag_U) {
@@ -123,63 +120,10 @@ void GotPacket(u_char *args, const struct pcap_pkthdr *header,
       printf("RAW packet\n");
       PrintRawData(packet, header->caplen);
     }
-  printf("\n");
+    printf("\n");
   }
+  ReallocateHeaders(headers, cnt);
 }
-
-/*
-// old packet handler
-void GotPacket2(u_char *args, const struct pcap_pkthdr *header,
-     const u_char *packet) {
-  char time_buf[64];
-  struct tm *packet_time;
-  struct GetterParams *params = (struct GetterParams*)args;
-  time_t sec_time = header->ts.tv_sec;
-  uint16_t crc16;
-  int no_eth_length;
-  const u_char *eth_hdr_end;
-  struct ethhdr eth_header;
-  struct IPv4Header ipv4_header;
-  struct ARPHeader arp_header;
-
-
-  GetEtherHeader(packet, &eth_header);
-  eth_hdr_end = packet + sizeof(eth_header);
-  no_eth_length = header->caplen - sizeof(eth_header);
-
-  if (params->flag_e) {
-    packet_time = localtime(&sec_time);
-    printf("Recived packet, total length: %d\n", header->caplen);
-    strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S", packet_time);
-    printf("%s %06dusec\n", time_buf, (int)header->ts.tv_usec);
-    PrintEtherHeader(&eth_header);
-    printf("\n");
-  }
-  if (params->flag_I && (eth_header.h_proto == ETH_P_IP)) {
-    GetIPv4Header(eth_hdr_end, no_eth_length, &ipv4_header);
-    PrintIPv4Header(&ipv4_header);
-    crc16 = CRC16IPv4(eth_hdr_end, ipv4_header.header.ihl * 4);
-    if (crc16 == ipv4_header.header.check) {
-      printf("Correct checksum = 0x%04hX\n", crc16);
-    }
-    else {
-      printf("Message checkum = 0x%04hX, expectable checksum = 0x%04hX\n",
-              crc16, ipv4_header.header.check);
-    }
-    printf("\n");
-  }
-  if (params->flag_A && (eth_header.h_proto == ETH_P_ARP)) {
-    GetARPHeader(eth_hdr_end, no_eth_length, &arp_header);
-    PrintARPHeader(&arp_header);
-    FreeARPHeader(&arp_header);
-    printf("\n");
-  }
-  if (params->flag_r) {
-    PrintRawData(packet, header->caplen);
-    printf("\n");
-  }
-}
-*/
 
 int main(int argc, char *argv[]) {
   pcap_t *handle_dev;
@@ -188,50 +132,50 @@ int main(int argc, char *argv[]) {
   int buffer_size = 10000;
   int repeat_cnt = 1;
   int opt, ret, opt_int;
-  int flag_e = 0; // Print ethernet header
-  int flag_I = 0; // Print internet layer headers
-  int flag_A = 0; // Print ARP headers
-  int flag_a = 0; // Print all packets
-  int flag_r = 0; // Print raw data
   int flag_i = 0; // Use custom interface
-  int flag_C = 0; // Print ICMP headers
-  int flag_T = 0; // Print TCP headers
-  int flag_U = 0; // Print UDP headers
   struct GetterParams getter_params;
 
+  getter_params.flag_e = 0;
+  getter_params.flag_r = 0;
+  getter_params.flag_I = 0;
+  getter_params.flag_A = 0;
+  getter_params.flag_C = 0;
+  getter_params.flag_T = 0;
+  getter_params.flag_U = 0;
+  getter_params.flag_a = 0;
   while ((opt = getopt(argc, argv, "erIACTUan:s:i:")) != -1) {
     switch (opt) {
       opt_int = 0;
       case 'e': {  // Print ethernet header
-        flag_e = 1;
+        getter_params.flag_e = 1;
         break;
       }
       case 'r': {  // Print raw data
-        flag_r = 1;
+        getter_params.flag_r = 1;
         break;
       }
       case 'I': {  // Print IPv4 headers
-        flag_I = 1;
+        getter_params.flag_I = 1;
         break;
       }
       case 'A': {  // Print ARP headers
-        flag_A = 1;
+        getter_params.flag_A = 1;
         break;
       }
       case 'C': {  // Print ICMP headers
-        flag_C = 1;
+        getter_params.flag_C = 1;
         break;
       }
       case 'T': {  // Print TCP headers
-        flag_T = 1;
+        getter_params.flag_T = 1;
         break;
       }
       case 'U': {  // Print UDP headers
-        flag_U = 1;
+        getter_params.flag_U = 1;
         break;
       }
       case 'a': {  // Print all packets
-        flag_a = 1;
+        getter_params.flag_a = 1;
         break;
       }
       case 'n': {  // Number of repeats
@@ -259,15 +203,6 @@ int main(int argc, char *argv[]) {
       }
     }
   }
-
-  getter_params.flag_e = flag_e;
-  getter_params.flag_r = flag_r;
-  getter_params.flag_I = flag_I;
-  getter_params.flag_A = flag_A;
-  getter_params.flag_a = flag_a;
-  getter_params.flag_C = flag_C;
-  getter_params.flag_T = flag_T;
-  getter_params.flag_U = flag_U;
 
   if (flag_i == 0) {
     dev_str = pcap_lookupdev(errbuf);

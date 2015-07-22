@@ -98,9 +98,10 @@ extern int GetIPv4Header(const unsigned char *packet, int length, struct IPv4Hea
 extern void IPAdressToStr(uint32_t addr, char *str);
 extern void PrintIPv4Header(const struct IPv4Header *ip_header);
 extern int GetARPHeader(const unsigned char *packet, int length, struct ARPHeader *header);
-extern void FreeARPHeader(struct ARPHeader *header);
+extern void FreeARPHeader(const struct ARPHeader *header);
 extern void PrintARPHeader(const struct ARPHeader *header);
 extern void PrintHeader(const struct UniHeader *header);
 extern int GetAllHeaders(const unsigned char *packet, int length, struct UniHeader *headers);
+extern void ReallocateHeaders(const struct UniHeader *headers, int cnt);
 
 #endif // SNIFFER_PACKETS_H_
