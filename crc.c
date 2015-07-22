@@ -1,4 +1,5 @@
 #include "crc.h"
+#include <stdio.h>
 
 uint16_t CRC16Network(const unsigned char *data, int length, uint16_t acc) {
   int i;
@@ -8,6 +9,7 @@ uint16_t CRC16Network(const unsigned char *data, int length, uint16_t acc) {
   
   for (i = 0; i < cnt; i++) {
     sum += ntohs(*((uint16_t*)(data + 2*i)));
+    printf("%04X ", ntohs(*((uint16_t*)(data + 2*i))));
   }
   if ((length % 2) != 0) {
     dummy = ((uint16_t)data[length - 1]) << 8;
@@ -15,6 +17,7 @@ uint16_t CRC16Network(const unsigned char *data, int length, uint16_t acc) {
   }
   sum = (sum >> 16) + (sum & 0xFFFF);
   sum = (sum >> 16) + (sum & 0xFFFF);
+  printf("\n");
   return (uint16_t)sum;
 }
 

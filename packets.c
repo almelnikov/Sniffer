@@ -432,9 +432,8 @@ int GetOverIPHeader(const unsigned char *packet, int length, int protocol,
     if (ret == 0) {
       header->type = HDR_TYPE_UDP;
       header->load_begin = packet + UDP_HDR_SIZE;
-      header->load_length = length - udp_hdr_ptr->header.len;
-      FormPseudoHeader(ip_hdr, header->load_length + UDP_HDR_SIZE,
-                       udp_hdr_ptr->pseudo);
+      header->load_length = udp_hdr_ptr->header.len - UDP_HDR_SIZE;
+      FormPseudoHeader(ip_hdr, udp_hdr_ptr->header.len, udp_hdr_ptr->pseudo);
     } else return -1;
   }
   return 0;
