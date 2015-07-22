@@ -78,6 +78,7 @@ void GotPacket(u_char *args, const struct pcap_pkthdr *header,
   int cnt, i;
   int length = header->caplen;
   int print_flag = 0;
+  int load_num = 0;
 
   cnt = GetAllHeaders(packet, length, headers);
   if (params.flag_I) {
@@ -119,6 +120,16 @@ void GotPacket(u_char *args, const struct pcap_pkthdr *header,
     if (params.flag_r) {
       printf("RAW packet\n");
       PrintRawData(packet, header->caplen);
+    } else {
+      printf("Payload\n");
+      if (params.flag_I || params.flag_A) {
+        load_num = 1;
+      }
+      if (params.flag_C || params.flag_T || params.flag_U) {
+        load_num = 2;
+      }
+      PrintRawData(headers[load_num].load_begin,
+                   headers[load_num].load_length);
     }
     printf("\n");
   }
@@ -130,7 +141,7 @@ int main(int argc, char *argv[]) {
   char errbuf[PCAP_ERRBUF_SIZE];
   char interface_str[INTERFACE_STR_SIZE], *dev_str;
   int buffer_size = 10000;
-  int repeat_cnt = 1;
+  int repeat_cnt = 0;
   int opt, ret, opt_int;
   int flag_i = 0; // Use custom interface
   struct GetterParams getter_params;
