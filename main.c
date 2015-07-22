@@ -6,7 +6,7 @@
 #include <pcap/pcap.h>
 #include "print_raw.h"
 #include "packets.h"
-#include "crc.h"
+#include "print_packet.h"
 
 #define INTERFACE_STR_SIZE 256
 #define ERROR_HDR_SIZE 1

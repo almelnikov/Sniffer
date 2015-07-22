@@ -91,16 +91,6 @@ struct UniHeader {
   union HeaderUnion header;
 };
 
-
-extern void GetEtherHeader(const unsigned char *packet, struct ethhdr *header);
-extern void PrintEtherHeader(const struct ethhdr *header);
-extern int GetIPv4Header(const unsigned char *packet, int length, struct IPv4Header *ip_header);
-extern void IPAdressToStr(uint32_t addr, char *str);
-extern void PrintIPv4Header(const struct IPv4Header *ip_header);
-extern int GetARPHeader(const unsigned char *packet, int length, struct ARPHeader *header);
-extern void FreeARPHeader(const struct ARPHeader *header);
-extern void PrintARPHeader(const struct ARPHeader *header);
-extern void PrintHeader(const struct UniHeader *header);
 extern int GetAllHeaders(const unsigned char *packet, int length, struct UniHeader *headers);
 extern void ReallocateHeaders(const struct UniHeader *headers, int cnt);
 
