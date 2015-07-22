@@ -1,3 +1,7 @@
+/*
+ * Print RAW hex data
+ */
+
 #include "print_raw.h"
 
 static void PrintRawChunk(int pos, const unsigned char *data, int length,

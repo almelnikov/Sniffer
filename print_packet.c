@@ -1,3 +1,7 @@
+/*
+ * Print struct UniHeader
+ */
+
 #include "print_packet.h"
 
 static void GetEthProtocolStr(unsigned short protocol, char *str) {

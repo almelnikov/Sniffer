@@ -1,3 +1,8 @@
+/*
+ * Function for getting and deallocating packet structures
+ */
+
+
 #include "packets.h"
 
 static void GetEtherHeader(const unsigned char *packet, struct ethhdr *header) {
