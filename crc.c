@@ -16,7 +16,6 @@ uint16_t CRC16Network(const unsigned char *data, int length, uint16_t acc) {
   }
   sum = (sum >> 16) + (sum & 0xFFFF);
   sum = (sum >> 16) + (sum & 0xFFFF);
-  printf("\n");
   return (uint16_t)sum;
 }
 
