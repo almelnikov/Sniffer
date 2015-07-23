@@ -15,7 +15,10 @@ static void PrintRawChunk(int pos, const unsigned char *data, int length,
   for ( ; i < tab; i++) {
     printf("   ");
   }
-  printf(" %.*s\n", length, data);
+  for (i = 0; i < length; i++) {
+    printf("%c", data[i]);
+  }
+  printf("\n");
 }
 
 void PrintRawData(const void *data, int length) {
