@@ -78,7 +78,7 @@ static void GetIPProtocolStr(unsigned char protocol, char *str) {
       break;
     }
     case IPV4_PROT_UDP: {
-      strcpy(str, "ICMP");
+      strcpy(str, "UDP");
       break;
     }
     case IPV4_PROT_ENCAP: {
